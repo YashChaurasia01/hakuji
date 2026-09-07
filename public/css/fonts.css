@@ -1,0 +1,22 @@
+/*
+  Custom board fonts go here.
+
+  1. Drop your font files into /public/fonts/
+  2. Declare each one with @font-face below, e.g.
+
+     @font-face {
+       font-family: 'My Font';
+       src: url('/fonts/my-font.woff2') format('woff2');
+       font-weight: 400 700;
+       font-display: swap;
+     }
+
+  3. Register the family in FONT_FAMILIES inside /public/js/store.js
+     so it appears in the text tool's font picker.
+*/
+
+
+@font-face {
+  font-family: Font1;
+  src: url(../img/abnes.ttf);
+}

@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#000000" />
+  <title>HAKUJI | Infinite Whiteboard for Teaching Trading</title>
+  <meta name="description"
+    content="HAKUJI is an infinite whiteboard built for teaching trading: smooth pen, shape snapping, editable candlesticks, rich text and export." />
+
+
+  <!-- ============Favicon==================== -->
+  <!-- Link to the main favicon.ico file -->
+  <link rel="icon" href="./img/favicon_io/favicon.ico" type="image/x-icon">
+  <!-- Link to Android Chrome icons -->
+  <link rel="icon" type="image/png" sizes="192x192" href="./img/favicon_io/android-chrome-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="./img/favicon_io/android-chrome-512x512.png">
+  <!-- Link to Apple Touch Icon -->
+  <link rel="apple-touch-icon" sizes="180x180" href="./img/favicon_io/apple-touch-icon.png">
+  <!-- Link to other favicon sizes -->
+  <link rel="icon" type="image/png" sizes="32x32" href="./img/favicon_io/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./img/favicon_io/favicon-16x16.png">
+  <!-- Link to site.webmanifest -->
+  <link rel="manifest" href="./img/favicon_io/site.webmanifest">
+  <link rel="stylesheet" href="./css/fonts.css" />
+  <link rel="stylesheet" href="./css/styles.css" />
+</head>
+
+<body>
+  <canvas id="board" aria-label="Whiteboard canvas"></canvas>
+  <div id="text-layer" aria-live="polite"></div>
+
+  <header class="topbar">
+    <div class="group brand-group">
+      <button class="icon-btn" id="menu-btn" data-tip="Menu" aria-label="Open menu" aria-haspopup="menu"></button>
+      <span class="brand">HAKUJI</span>
+    </div>
+
+    <nav class="group toolbar" id="toolbar" aria-label="Tools"></nav>
+
+    <div class="group right-group">
+      <button class="icon-btn" id="board-btn" data-tip="Board background" aria-label="Board background"></button>
+      <button class="icon-btn" id="shortcuts-btn" data-tip="Shortcuts" aria-label="Keyboard shortcuts"></button>
+      <button class="icon-btn" id="export-btn" data-tip="Export" data-action="export" aria-label="Export"></button>
+      <div class="presence" id="presence" aria-label="Room members" hidden></div>
+      <button class="btn primary" id="friends-btn"><span class="icon" data-icon="users"></span><span>Play with
+          friends</span></button>
+    </div>
+  </header>
+
+  <div class="subbar" id="subbar" hidden></div>
+
+  <aside class="panel" id="style-panel" aria-label="Properties" hidden></aside>
+
+  <div class="floating bottom-left" id="history-bar">
+    <button class="icon-btn" id="undo-btn" data-tip="Undo" data-action="undo" aria-label="Undo"></button>
+    <button class="icon-btn" id="redo-btn" data-tip="Redo" data-action="redo" aria-label="Redo"></button>
+  </div>
+
+  <div class="floating bottom-right" id="zoom-bar">
+    <button class="icon-btn" id="zoom-out-btn" data-tip="Zoom out" data-action="zoomOut" aria-label="Zoom out"></button>
+    <button class="zoom-value" id="zoom-value" data-tip="Reset zoom" data-action="zoomReset"
+      aria-label="Reset zoom">100%</button>
+    <button class="icon-btn" id="zoom-in-btn" data-tip="Zoom in" data-action="zoomIn" aria-label="Zoom in"></button>
+    <span class="divider"></span>
+    <button class="icon-btn" id="zoom-fit-btn" data-tip="Fit to content" data-action="zoomFit"
+      aria-label="Fit to content"></button>
+  </div>
+
+  <div id="tooltip" role="tooltip"></div>
+  <div id="popover-root"></div>
+  <div id="toasts" aria-live="polite"></div>
+
+  <dialog id="export-dialog" class="dialog">
+    <form method="dialog" class="dialog-body">
+      <header class="dialog-head">
+        <h2>Export</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close"></button>
+      </header>
+      <div class="field">
+        <span class="label">Format</span>
+        <div class="seg" role="radiogroup" id="export-format">
+          <label><input type="radio" name="fmt" value="png" checked /><span>PNG</span></label>
+          <label><input type="radio" name="fmt" value="webp" /><span>WEBP</span></label>
+          <label><input type="radio" name="fmt" value="svg" /><span>SVG</span></label>
+          <label><input type="radio" name="fmt" value="pdf" /><span>PDF</span></label>
+        </div>
+      </div>
+      <div class="field">
+        <span class="label">Scope</span>
+        <div class="seg" role="radiogroup" id="export-scope">
+          <label><input type="radio" name="scope" value="all" checked /><span>Whole board</span></label>
+          <label><input type="radio" name="scope" value="selection" /><span>Selection</span></label>
+        </div>
+      </div>
+      <div class="field">
+        <span class="label">Background</span>
+        <div class="seg" role="radiogroup" id="export-bg">
+          <label><input type="radio" name="bg" value="transparent" checked /><span>Transparent</span></label>
+          <label><input type="radio" name="bg" value="board" /><span>Board colour</span></label>
+        </div>
+      </div>
+      <div class="field">
+        <span class="label">Scale</span>
+        <div class="seg" role="radiogroup" id="export-scale">
+          <label><input type="radio" name="scale" value="1" /><span>1x</span></label>
+          <label><input type="radio" name="scale" value="2" checked /><span>2x</span></label>
+          <label><input type="radio" name="scale" value="3" /><span>3x</span></label>
+        </div>
+      </div>
+      <footer class="dialog-foot">
+        <button type="button" class="btn" id="export-copy">Copy to clipboard</button>
+        <button type="button" class="btn primary" id="export-download">Download</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="shortcuts-dialog" class="dialog">
+    <div class="dialog-body">
+      <header class="dialog-head">
+        <h2>Keyboard shortcuts</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close"></button>
+      </header>
+      <p class="hint">Click a key to rebind it, then press the new combination. Press Esc to cancel.</p>
+      <div class="shortcut-list" id="shortcut-list"></div>
+      <footer class="dialog-foot">
+        <button type="button" class="btn" id="shortcuts-reset">Reset to defaults</button>
+        <button type="button" class="btn primary" data-close>Done</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <dialog id="settings-dialog" class="dialog">
+    <div class="dialog-body">
+      <header class="dialog-head">
+        <h2>Settings</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close"></button>
+      </header>
+      <div id="settings-body"></div>
+      <footer class="dialog-foot">
+        <button type="button" class="btn primary" data-close>Done</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <dialog id="friends-dialog" class="dialog">
+    <div class="dialog-body">
+      <header class="dialog-head">
+        <h2>Play with friends</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close"></button>
+      </header>
+      <div id="friends-body"></div>
+    </div>
+  </dialog>
+
+  <input type="file" id="image-input" accept="image/*" hidden />
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+
+</html>
