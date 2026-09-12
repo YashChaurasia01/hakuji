@@ -196,7 +196,7 @@ export async function toPDF(canvas) {
 }
 
 /* ---------- high level ---------- */
-export async function exportBoard({ format, elements, background, scale, filename = 'honama-board' }) {
+export async function exportBoard({ format, elements, background, scale, filename = 'Brain-Hakuji' }) {
   if (!elements.length) throw new Error('Nothing to export');
   if (format === 'svg') {
     const svg = toSVG(elements, { background });
