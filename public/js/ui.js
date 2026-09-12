@@ -1,6 +1,6 @@
 import {
   state, on, emit, commit, touch, persist, setTool, setSelection, selectedElements, canUndo, canRedo,
-  FONT_FAMILIES, PRESET_COLORS, DEFAULT_SHORTCUTS, ACTION_GROUPS, ACTION_LABELS, removeElements, newId,
+  FONT_FAMILIES, PRESET_COLORS, DEFAULT_SHORTCUTS, ACTION_GROUPS, ACTION_LABELS, removeElements, newId, setLocked,
 } from './store.js';
 import { icon, iconSvg } from './icons.js';
 import { formatCombo, comboFromEvent, runAction } from './keyboard.js';
@@ -498,6 +498,9 @@ export function initUI(app) {
           h('button', { class: 'btn', onclick: () => runAction(app, 'sendBackward') }, icon('sendBackward', 14), 'Backward'),
           h('button', { class: 'btn', onclick: () => duplicateSelection(app) }, icon('duplicate', 14), 'Duplicate'),
           h('button', { class: 'btn', onclick: () => runAction(app, 'copyImage') }, icon('clipboard', 14), 'Copy PNG'),
+          h('button', {
+            class: 'btn full', onclick: () => { setLocked(sel.map((el) => el.id), true); ui.toast('Locked'); },
+          }, icon('lock', 14), 'Lock selection'),
           h('button', { class: 'btn full danger', onclick: () => runAction(app, 'delete') }, icon('trash', 14), 'Delete'),
         ),
       ));
@@ -566,10 +569,63 @@ export function initUI(app) {
           commit();
           emit('selection');
         }
-      }, 'danger'),
+            }, 'danger'),
     ];
     openPopover(e.currentTarget, content, { align: 'below', className: 'menu' });
   });
+
+  /* ---------- context menu (right-click on the board) ---------- */
+  ui.openContextMenu = (e, lockedTarget) => {
+    const anchor = {
+      getBoundingClientRect: () => ({ left: e.clientX, right: e.clientX, top: e.clientY, bottom: e.clientY, width: 0, height: 0 }),
+    };
+    const item = (name, ic, cb, cls = '') => h('button', {
+      class: `ctx-item ${cls}`, onclick: () => { ui.closePopovers(); cb(); },
+    }, icon(ic, 15), name);
+    const content = [];
+
+    if (lockedTarget) {
+      content.push(h('div', { class: 'pop-label' }, 'Locked item'));
+      content.push(item(`Unlock ${lockedTarget.type}`, 'unlock', () => { setLocked([lockedTarget.id], false); ui.toast('Unlocked'); }));
+      content.push(h('div', { class: 'sep' }));
+    }
+
+    const sel = selectedElements();
+    if (sel.length) {
+      content.push(h('div', { class: 'pop-label' }, `${sel.length} selected`));
+      content.push(item('Lock selection', 'lock', () => { setLocked(sel.map((el) => el.id), true); ui.toast('Locked'); }));
+      content.push(item('Duplicate', 'duplicate', () => duplicateSelection(app)));
+      content.push(item('Copy', 'copy', () => runAction(app, 'copy')));
+      content.push(item('Bring forward', 'bringForward', () => runAction(app, 'bringForward')));
+      content.push(item('Send backward', 'sendBackward', () => runAction(app, 'sendBackward')));
+      content.push(item('Delete', 'trash', () => runAction(app, 'delete'), 'danger'));
+      content.push(h('div', { class: 'sep' }));
+
+      const types = new Set(sel.map((el) => el.type));
+      const only = (t) => types.size === 1 && types.has(t);
+      if (only('stroke') || only('shape') || only('candle') || only('text')) {
+        content.push(h('div', { class: 'pop-label' }, 'Quick style'));
+        if (only('stroke') || only('shape')) content.push(colorRow('Colour', 'color'));
+        if (only('shape')) content.push(colorRow('Fill', 'fill', { allowTransparent: true }));
+        if (only('candle')) { content.push(colorRow('Bullish', 'bullColor')); content.push(colorRow('Bearish', 'bearColor')); }
+        if (only('text')) content.push(colorRow('Text colour', 'color'));
+        content.push(sliderRow('Opacity', 'opacity', 0.05, 1, 0.05, (v) => Math.round(v * 100)));
+        content.push(h('div', { class: 'sep' }));
+      }
+    }
+
+    content.push(h('div', { class: 'pop-label' }, 'Tools'));
+    content.push(h('div', { class: 'ctx-tools' }, ...TOOLS.map((t) => h('button', {
+      class: `icon-btn${state.tool === t.id ? ' active' : ''}`, 'data-tip': t.name, 'aria-label': t.name,
+      onclick: () => { ui.closePopovers(); if (t.id === 'image') ui.pickImage(); else setTool(t.id); },
+    }, icon(t.id)))));
+    content.push(h('div', { class: 'sep' }));
+    content.push(item('Import image', 'image', () => ui.pickImage()));
+    content.push(item('Paste', 'clipboard', () => pasteElements(app)));
+    content.push(item('Board background', 'grid', () => $('#board-btn').click()));
+
+    openPopover(anchor, content, { align: 'right', className: 'context-menu' });
+  };
 
   $('#shortcuts-btn').addEventListener('click', openShortcutsDialog);
   $('#export-btn').addEventListener('click', openExportDialog);

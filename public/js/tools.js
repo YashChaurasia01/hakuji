@@ -33,10 +33,11 @@ export function initInput(app) {
   const pressureOf = (e) => (state.settings.pressure && e.pointerType === 'pen' ? Math.max(0.05, e.pressure) : 0.5);
   const hitTol = () => 6 / camera.z;
 
-  function topHit(wp) {
+  function topHit(wp, includeLocked = false) {
     const tol = hitTol();
     for (let i = state.elements.length - 1; i >= 0; i--) {
       const el = state.elements[i];
+      if (!includeLocked && el.locked) continue;
       if (hitTest(el, wp, tol)) return el;
     }
     return null;
@@ -165,7 +166,7 @@ export function initInput(app) {
   function eraseAt(wp) {
     const r = state.style.eraserSize / 2 / camera.z;
     const before = state.elements.length;
-    state.elements = state.elements.filter((el) => !hitTest(el, wp, r));
+    state.elements = state.elements.filter((el) => el.locked || !hitTest(el, wp, r));
     if (state.elements.length !== before) {
       drag.removed = true;
       for (const id of [...state.selection]) if (!state.elements.some((el) => el.id === id)) state.selection.delete(id);
@@ -444,7 +445,7 @@ export function initInput(app) {
         const b = camera.toWorld(x + w, y + h);
         const rect = { x: a.x, y: a.y, w: b.x - a.x, h: b.y - a.y };
         const ids = new Set(drag.base);
-        for (const el of state.elements) if (rectsIntersect(rect, bboxOfElements([el]))) ids.add(el.id);
+        for (const el of state.elements) if (!el.locked && rectsIntersect(rect, bboxOfElements([el]))) ids.add(el.id);
         state.selection = ids;
         emit('selection');
         break;
@@ -467,6 +468,7 @@ export function initInput(app) {
     }
     if (state.tool !== 'select') {
       if (state.hoverId) { state.hoverId = null; app.requestRender(); }
+      if (state.hoverLockedId) { state.hoverLockedId = null; app.requestRender(); }
       return;
     }
     const wp = camera.toWorld(sp.x, sp.y);
@@ -489,7 +491,18 @@ export function initInput(app) {
       state.hoverId = id;
       app.requestRender();
     }
-    setCursor(el ? 'move' : null);
+    if (el) {
+      if (state.hoverLockedId) { state.hoverLockedId = null; app.requestRender(); }
+      setCursor('move');
+      return;
+    }
+    const lockedEl = topHit(wp, true);
+    const lockedId = lockedEl ? lockedEl.id : null;
+    if (lockedId !== state.hoverLockedId) {
+      state.hoverLockedId = lockedId;
+      app.requestRender();
+    }
+    setCursor(lockedId ? 'locked' : null);
   }
 
   function cursorForHandle(h, rotation) {
@@ -698,7 +711,13 @@ export function initInput(app) {
   canvas.addEventListener('pointerleave', () => { if (!drag) { app.pointer = null; app.requestRender(); } });
   canvas.addEventListener('wheel', onWheel, { passive: false });
   canvas.addEventListener('dblclick', onDblClick);
-  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    if (state.tool === 'candle') return; // candle tool keeps its own right-click editing behaviour
+    const wp = camera.toWorld(e.clientX, e.clientY);
+    const hit = topHit(wp, true);
+    app.ui.openContextMenu(e, hit && hit.locked ? hit : null);
+  });
 
   app.cancelDrag = cancelDrag;
 }

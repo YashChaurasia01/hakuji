@@ -118,6 +118,7 @@ export const state = {
   tool: 'pen',
   draft: null,
   hoverId: null,
+  hoverLockedId: null,
   editingId: null,
   activeCandleId: null,
   marquee: null,
@@ -251,6 +252,13 @@ export function selectedElements() {
   return state.elements.filter((e) => state.selection.has(e.id));
 }
 
+export function setLocked(ids, locked) {
+  const set = new Set(ids);
+  for (const el of state.elements) if (set.has(el.id)) el.locked = locked;
+  commit();
+  emit('selection');
+}
+
 export function setTool(tool) {
   if (state.tool === tool) return;
   state.tool = tool;
@@ -267,3 +275,13 @@ export function removeElements(ids) {
   state.elements = state.elements.filter((e) => !set.has(e.id));
   for (const id of set) state.selection.delete(id);
 }
+
+function pruneLockedSelection() {
+  let changed = false;
+  for (const id of [...state.selection]) {
+    const el = getElement(id);
+    if (el && el.locked) { state.selection.delete(id); changed = true; }
+  }
+  if (changed) emit('selection');
+}
+on('change', pruneLockedSelection);

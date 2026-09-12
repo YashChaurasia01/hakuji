@@ -125,6 +125,10 @@ select:focus-visible {
   cursor: pointer;
 }
 
+#board.cursor-locked {
+  cursor: not-allowed;
+}
+
 #text-layer {
   position: fixed;
   inset: 0;
@@ -715,6 +719,52 @@ select.select {
 
 .menu button.danger {
   color: var(--danger);
+}
+
+
+.context-menu {
+  width: 236px;
+  max-width: calc(100vw - 16px);
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: 6px;
+  gap: 2px;
+}
+
+.context-menu .pop-label {
+  margin-top: 6px;
+}
+
+.context-menu .pop-label:first-child {
+  margin-top: 2px;
+}
+
+.ctx-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: 6px;
+  color: var(--text);
+  text-align: left;
+  flex-shrink: 0;
+}
+
+.ctx-item:hover {
+  background: var(--surface-2);
+}
+
+.ctx-item.danger {
+  color: var(--danger);
+}
+
+.ctx-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 2px 0 4px;
 }
 
 .color-grid {

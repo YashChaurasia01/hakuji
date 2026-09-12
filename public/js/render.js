@@ -6,6 +6,7 @@ import {
 const measureCtx = document.createElement('canvas').getContext('2d');
 
 export const ACCENT = '#4f8cff';
+export const LOCK_COLOR = '#f0b429';
 
 /* ---------- background ---------- */
 export function drawBackground(ctx, board, camera, W, H) {
@@ -391,6 +392,31 @@ export function candleHandles(el, camera) {
   };
 }
 
+function drawLockBadge(ctx, p) {
+  const w = 20;
+  const hgt = 18;
+  const x = p.x - 2;
+  const y = p.y - hgt - 6;
+  ctx.beginPath();
+  ctx.moveTo(x + 5, y);
+  ctx.arcTo(x + w, y, x + w, y + hgt, 5);
+  ctx.arcTo(x + w, y + hgt, x, y + hgt, 5);
+  ctx.arcTo(x, y + hgt, x, y, 5);
+  ctx.arcTo(x, y, x + w, y, 5);
+  ctx.closePath();
+  ctx.fillStyle = LOCK_COLOR;
+  ctx.fill();
+  const cx = x + w / 2;
+  const cy = y + hgt / 2 + 1;
+  ctx.strokeStyle = '#1a1300';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(cx, cy - 3, 3, Math.PI, 0);
+  ctx.stroke();
+  ctx.fillStyle = '#1a1300';
+  ctx.fillRect(cx - 4, cy - 1, 8, 6);
+}
+
 export function drawOverlay(ctx, app) {
   const { state, camera } = app;
   const sel = state.elements.filter((e) => state.selection.has(e.id));
@@ -408,6 +434,25 @@ export function drawOverlay(ctx, app) {
       ctx.closePath();
       ctx.stroke();
       ctx.globalAlpha = 1;
+    }
+  }
+
+  // locked hover — tells the user *why* nothing selected
+  if (state.hoverLockedId && state.tool === 'select') {
+    const el = state.elements.find((e) => e.id === state.hoverLockedId);
+    if (el) {
+      const corners = elementCorners(el).map((p) => camera.toScreen(p.x, p.y));
+      ctx.save();
+      ctx.strokeStyle = LOCK_COLOR;
+      ctx.lineWidth = 1.25;
+      ctx.setLineDash([5, 4]);
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      corners.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
+      ctx.closePath();
+      ctx.stroke();
+      ctx.restore();
+      drawLockBadge(ctx, corners[0]);
     }
   }
 
